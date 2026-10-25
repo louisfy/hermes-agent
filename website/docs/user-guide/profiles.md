@@ -74,6 +74,26 @@ hermes profile create researcher --description "Reads source code and external d
 
 You can also set or auto-generate the description later with `hermes profile describe` — see the [Kanban guide](./features/kanban#auto-vs-manual-orchestration) for the full routing model.
 
+### Automatic command aliases
+
+`hermes profile create` creates a shell wrapper by default. To skip it for future
+creations, set this in the **invoking profile's** `config.yaml`:
+
+```yaml
+profiles:
+  auto_alias: false
+```
+
+You can also run `hermes config set profiles.auto_alias false`. The default is
+`true`; only the YAML boolean `false` disables automatic creation. `--no-alias`
+still skips the wrapper for one creation regardless of this setting.
+
+Without a wrapper, use `hermes -p <name> setup` or `hermes -p <name> chat`. You can
+create one later with `hermes profile alias <name>`. Existing wrappers are never
+removed. This preference only affects `hermes profile create` (including clones);
+it does not change `profile import`, distribution installation, or explicit alias
+commands. When cloning, the invoking profile's preference wins over the source's.
+
 ### Clone config only (`--clone`)
 
 ```bash

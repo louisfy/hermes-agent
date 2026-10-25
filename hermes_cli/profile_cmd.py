@@ -186,14 +186,16 @@ def _print_channel_clone_notice(name: str, source_label: str, clone_channels: bo
 
 
 def _profile_create(args):
+    from hermes_cli.profile_alias_policy import skip_automatic_profile_alias
     from hermes_cli.profiles import (
         _get_wrapper_dir, _is_wrapper_dir_in_path, check_alias_collision, create_profile,
         create_wrapper_script, get_active_profile_name, seed_profile_skills,
     )
     name = args.profile_name
+    profile_command = f"hermes -p {name}"
     clone = getattr(args, "clone", False)
     clone_all = getattr(args, "clone_all", False)
-    no_alias = getattr(args, "no_alias", False)
+    no_alias = skip_automatic_profile_alias(getattr(args, "no_alias", False))
     no_skills = getattr(args, "no_skills", False)
     clone_from = getattr(args, "clone_from", None)
     clone_channels = getattr(args, "clone_channels", False)
@@ -249,7 +251,7 @@ def _profile_create(args):
         elif result:
             print(f"{len(result.get('copied', []))} bundled skills synced.")
         else:
-            print(f"⚠ Skills could not be seeded. Run `{name} update` to retry.")
+            print(f"⚠ Skills could not be seeded. Run `{profile_command} update` to retry.")
     if not no_alias:
         collision = check_alias_collision(name)
         if collision:
@@ -259,6 +261,7 @@ def _profile_create(args):
         else:
             wrapper_path = create_wrapper_script(name)
             if wrapper_path:
+                profile_command = name
                 print(f"Wrapper created: {wrapper_path}")
                 if not _is_wrapper_dir_in_path():
                     print(f"\n⚠ {_get_wrapper_dir()} is not in your PATH.")
@@ -269,8 +272,8 @@ def _profile_create(args):
     except ValueError:
         profile_dir_display = str(profile_dir)
     print("\nNext steps:")
-    print(f"  {name} setup              Configure API keys and model")
-    print(f"  {name} chat               Start chatting")
+    print(f"  {profile_command} setup              Configure API keys and model")
+    print(f"  {profile_command} chat               Start chatting")
     from hermes_cli.gateway_multiplex_served import live_default_gateway_pid, recorded_served_profiles
     from hermes_cli.profiles import normalize_profile_name
     served = recorded_served_profiles() if live_default_gateway_pid() is not None else None
@@ -280,12 +283,12 @@ def _profile_create(args):
         # The multiplexer did not pick the profile up (older gateway or the signal failed): a restart serves it.
         print("  hermes gateway restart    Serve this profile from the running multiplexed gateway")
     else:
-        print(f"  {name} gateway start      Start the messaging gateway")
+        print(f"  {profile_command} gateway start      Start the messaging gateway")
     if clone or clone_all:
         print(f"\n  Edit {profile_dir_display}/.env for different API keys")
         print(f"  Edit {profile_dir_display}/SOUL.md for different personality")
     else:
-        print(f"\n  ⚠ This profile has no API keys yet. Run '{name} setup' first,")
+        print(f"\n  ⚠ This profile has no API keys yet. Run '{profile_command} setup' first,")
         print("    or it will inherit keys from your shell environment.")
         print(f"  Edit {profile_dir_display}/SOUL.md to customize personality")
     print()

@@ -43,6 +43,15 @@ runtime:
   nofile_soft_limit: 4096
 
 # =============================================================================
+# Profiles
+# =============================================================================
+# `hermes profile create` normally creates a shell shortcut named after the profile.
+# Set false to skip it by default; `hermes profile alias <name>` still creates one explicitly.
+# Read from the invoking profile's config, not the newly created or cloned profile.
+profiles:
+  auto_alias: true
+
+# =============================================================================
 # Attachments
 # =============================================================================
 # Where the TUI/Desktop gateway stages session file attachments (file uploads and
