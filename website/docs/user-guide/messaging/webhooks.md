@@ -508,6 +508,30 @@ hermes webhook subscribe github-issues \
 
 This returns the webhook URL and an auto-generated HMAC secret. Configure your service to POST to that URL.
 
+### Filter a subscription
+
+Use the existing [payload filter syntax](#payload-filters) directly from the CLI. For example,
+accept only merged pull requests, instead of waking the agent for every pull-request update:
+
+```bash
+hermes webhook subscribe merged-prs --events pull_request \
+  --filters '[{"field":"action","equals":"closed"},{"field":"pull_request.merged","equals":true}]' \
+  --prompt 'PR #{pull_request.number} was merged'
+```
+
+For longer or nested filters, use `--filters-file filters.json` instead. The options are
+mutually exclusive and accept a JSON list (all entries must match) or a single filter object.
+Files use UTF-8, with or without a BOM. Input is limited to 64 KiB and groups to depth 32.
+Each field rule must have exactly one supported operator. Invalid JSON, operators, operand
+types, regexes or unreadable files are rejected before the subscription is changed.
+`in_file` paths are resolved by the existing runtime under the route's profile; creating a
+subscription does not open those files.
+
+When updating a subscription, omitting both options preserves its existing filters.
+Pass `--filters '[]'` to explicitly clear them. Subscriptions created without either option
+keep accepting all payloads allowed by their event filter. Creation output and `webhook list`
+show the number of top-level rules without printing filter values.
+
 ### List subscriptions
 
 ```bash

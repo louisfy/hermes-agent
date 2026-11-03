@@ -182,6 +182,7 @@ def _cmd_subscribe(args):
         print(f"Error: Invalid name '{name}'. Use lowercase alphanumeric with hyphens/underscores.")
         return 1
 
+    from hermes_cli.webhook_filter_args import apply_route_filters, print_filter_summary
     subs = _load_subscriptions()
     expected = subs.get(name, _MISSING_SUBSCRIPTION)
     is_update = expected is not _MISSING_SUBSCRIPTION
@@ -256,8 +257,9 @@ def _cmd_subscribe(args):
     if args.deliver_chat_id:
         route["deliver_extra"] = {"chat_id": args.deliver_chat_id}
     try:
+        apply_route_filters(args, route, existing)
         route = _replace_subscription(name, route, expected)
-    except SubscriptionMutationConflict as exc:
+    except (SubscriptionMutationConflict, ValueError) as exc:
         print(f"Error: {exc}")
         return 1
 
@@ -266,6 +268,7 @@ def _cmd_subscribe(args):
     print(f"  Profile: {profile}")
     print(f"  Secret: {secret}")
     print(f"  Events: {', '.join(events) or '(all)'}")
+    print_filter_summary(route, "  ")
     print(f"  Deliver: {route['deliver']}")
     if route.get("deliver_only"):
         print("  Mode: direct delivery (no agent, zero LLM cost)")
@@ -296,6 +299,8 @@ def _resolve_route_cron_job(profile: str, reference: str):
 
 
 def _cmd_list(args):
+    from hermes_cli.webhook_filter_args import print_filter_summary
+
     subs = _load_subscriptions()
     if not subs:
         print("  No dynamic webhook subscriptions.")
@@ -318,6 +323,7 @@ def _cmd_list(args):
         print(f"    URL:     {_route_url(name, route)}")
         print(f"    Profile: {profile}")
         print(f"    Events:  {events}")
+        print_filter_summary(route, "    ")
         print(f"    Deliver: {deliver}")
         if route.get("script"):
             print(f"    Script:  {route['script']}")

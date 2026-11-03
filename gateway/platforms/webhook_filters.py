@@ -104,6 +104,61 @@ _FIELD_OPERATORS: tuple[tuple[str, Callable[[Any, Any], bool]], ...] = (
 )
 
 
+def _validate_field_filter(spec: dict) -> None:
+    operators = {key for key, _predicate in _FIELD_OPERATORS} | {"missing"}
+    if set(spec) - (operators | {"field"}):
+        raise ValueError("webhook filter contains an unsupported key")
+    field = spec.get("field")
+    if not isinstance(field, str) or not field.strip():
+        raise ValueError("webhook filter requires a nonblank field path")
+    selected = operators.intersection(spec)
+    if len(selected) != 1:
+        raise ValueError("webhook field filter requires exactly one supported operator")
+    operator = next(iter(selected))
+    value = spec[operator]
+    if operator == "exists" and not isinstance(value, bool):
+        raise ValueError("webhook filter exists must be a boolean")
+    if operator == "missing" and value is not True:
+        raise ValueError("webhook filter missing must be true; use exists for other cases")
+    if operator == "in" and not isinstance(value, list):
+        raise ValueError("webhook filter in must be a JSON list")
+    if operator in {"regex", "in_file"} and (not isinstance(value, str) or not value.strip()):
+        raise ValueError("webhook filter regex and in_file require nonblank strings")
+    if operator == "regex":
+        try:
+            re.compile(value)
+        except (re.error, OverflowError, RecursionError) as exc:
+            raise ValueError("webhook filter regex is invalid") from exc
+
+
+def validate_route_filters(filters: Any) -> None:
+    """Validate CLI input using the engine's operators; do not read in_file targets.
+
+    Existing static routes retain their runtime semantics. CLI writes reject ambiguous
+    operators instead of silently relying on precedence, and bound recursive groups.
+    """
+    if not isinstance(filters, (list, dict)):
+        raise ValueError("webhook filters must be a JSON list or object")
+    pending = [(spec, 0) for spec in (filters if isinstance(filters, list) else [filters])]
+    while pending:
+        spec, depth = pending.pop()
+        if depth > 32:
+            raise ValueError("webhook filter groups exceed the maximum depth of 32")
+        if not isinstance(spec, dict):
+            raise ValueError("each webhook filter must be a JSON object")
+        groups = {"all", "any", "not"}.intersection(spec)
+        if not groups:
+            _validate_field_filter(spec)
+            continue
+        if len(groups) != 1 or len(spec) != 1:
+            raise ValueError("webhook filter groups must contain only one of all, any or not")
+        group = next(iter(groups))
+        children = [spec[group]] if group == "not" else spec[group]
+        if not isinstance(children, list):
+            raise ValueError("webhook filter all and any require JSON lists")
+        pending.extend((child, depth + 1) for child in children)
+
+
 class WebhookRouteProcessor:
     """Evaluate declarative filters and optional script transforms."""
 

@@ -19,6 +19,14 @@ def build_webhook_parser(subparsers, *, cmd_webhook: Callable) -> None:
     wh_sub.add_argument(
         "--prompt", default="", help="Prompt template with {dot.notation} payload refs")
     wh_sub.add_argument("--events", default="", help="Comma-separated event types to accept")
+    filter_input = wh_sub.add_mutually_exclusive_group()
+    filter_input.add_argument(
+        "--filters", metavar="JSON", default=None,
+        help="Declarative payload filters as a JSON list or object (max 64 KiB). "
+        "Omit to preserve existing filters; use '[]' to clear them.")
+    filter_input.add_argument(
+        "--filters-file", metavar="PATH", default=None,
+        help="Read declarative filters from a UTF-8 JSON file (max 64 KiB).")
     wh_sub.add_argument("--description", default="", help="What this subscription does")
     wh_sub.add_argument("--skills", default="", help="Comma-separated skill names to load")
     wh_sub.add_argument(

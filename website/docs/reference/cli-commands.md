@@ -968,6 +968,8 @@ hermes webhook subscribe <name> [options]
 |--------|-------------|
 | `--prompt` | Prompt template with `{dot.notation}` payload references. |
 | `--events` | Comma-separated event types to accept (e.g. `issues,pull_request`). Empty = all. |
+| `--filters JSON` | Declarative payload filter list or object. Maximum 64 KiB; validated before saving. Omit to preserve existing filters, or pass `'[]'` to clear. See [Payload Filters](../user-guide/messaging/webhooks.md#payload-filters). |
+| `--filters-file PATH` | Read filters from a UTF-8 JSON file (BOM accepted), instead of `--filters`. The options are mutually exclusive. |
 | `--description` | Human-readable description. |
 | `--skills` | Comma-separated skill names to load for the agent run. |
 | `--deliver` | Delivery target: `log` (default), `telegram`, `discord`, `slack`, `github_comment`. |
