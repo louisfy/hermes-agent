@@ -157,6 +157,9 @@ def test_a_url_terminal_on_work_clones_the_gateways_work_not_its_launch_profile(
         work = home / "profiles" / "work"
         (work / ".env").write_text("OPENROUTER_API_KEY=sk-or-gateway-work\n")
         (work / "SOUL.md").write_text("the gateway's work soul\n")
+        source_skill = work / "skills" / "report" / "SKILL.md"
+        source_skill.parent.mkdir(parents=True, exist_ok=True)
+        source_skill.write_text("# Sample report\n", encoding="utf-8")
         (home / "SOUL.md").write_text("the launch profile's soul\n")
         terminal_home = tmp_path / "terminal-home"
         (terminal_home / "profiles" / "work").mkdir(parents=True)
@@ -173,3 +176,17 @@ def test_a_url_terminal_on_work_clones_the_gateways_work_not_its_launch_profile(
         assert "sk-or-gateway-work" in (made / ".env").read_text()
         assert "url-terminal-owner" not in out
         assert not (terminal_home / "profiles" / "urlclone").exists(), out
+
+        clone = _create_on_profile(terminal_home, user, "work", "withoutskills",
+                                   "--clone", "--no-skills", env={"HERMES_TUI_GATEWAY_URL": url})
+        assert clone.returncode == 0, clone.stdout + clone.stderr
+        assert "Cloned config, .env, and SOUL.md from work." in clone.stdout
+        assert "Opted out of the full bundled skill set (--no-skills)." in clone.stdout
+        made = home / "profiles" / "withoutskills"
+        assert (made / "SOUL.md").read_text(encoding="utf-8") == "the gateway's work soul\n"
+        assert "sk-or-gateway-work" in (made / ".env").read_text(encoding="utf-8")
+        assert (made / ".no-bundled-skills").is_file()
+        assert list((made / "skills").iterdir()) == []
+        assert (home / "profiles" / "urlclone" / "skills" / "report" / "SKILL.md").is_file()
+        assert source_skill.is_file()
+        assert not (terminal_home / "profiles" / "withoutskills").exists()

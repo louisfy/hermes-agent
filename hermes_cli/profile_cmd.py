@@ -225,7 +225,10 @@ def _profile_create(args):
         if clone_all:
             print(f"Full copy from {source_label} (excluding session history, cron jobs, backups, and snapshots).")
         else:
-            print(f"Cloned config, .env, SOUL.md, and skills from {source_label}.")
+            cloned_files = "config, .env, and SOUL.md" if request.no_skills else "config, .env, SOUL.md, and skills"
+            print(f"Cloned {cloned_files} from {source_label}.")
+            if made.skills_opted_out:
+                print("Opted out of the full bundled skill set (--no-skills).")
             if made.cloned_plugins:
                 print(f"Cloned installed plugins too: {', '.join(made.cloned_plugins)}.")
             if made.memory_provider:

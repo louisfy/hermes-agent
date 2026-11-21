@@ -85,7 +85,7 @@ Creates a new profile.
 | `--clone-from <profile>` | Clone config/skills/SOUL from a specific profile instead of the current one. Implies `--clone` unless paired with `--clone-all`. |
 | `--no-alias` | Skip wrapper script creation. |
 | `--description "<text>"` | One- or two-sentence description of what this profile is good at. Used by the kanban orchestrator to route tasks based on role instead of profile name alone. Skip and add later via `hermes profile describe`. Persisted in `<profile_dir>/profile.yaml`. |
-| `--no-skills` | Create an **empty** profile with zero bundled skills enabled. Writes a `.no-bundled-skills` marker into the profile so future `hermes update` runs won't re-seed the bundled set, and refuses to combine with `--clone`, `--clone-from`, or `--clone-all` (which would copy skills in anyway). Useful for narrow orchestrator profiles or sandbox profiles that should not inherit the full skill catalog. To toggle this on an already-created profile (including the default `~/.hermes`), use `hermes skills opt-out` / `hermes skills opt-in`. |
+| `--no-skills` | Opt out of the full bundled skill set. With `--clone` or `--clone-from`, skip copying the source profile's `skills/` directory. The opt-out marker makes future `hermes update` runs seed only essential skills. Incompatible with `--clone-all`. For an existing profile, use `hermes skills opt-out` / `hermes skills opt-in`. |
 
 Creating a profile does **not** make that profile directory the default project/workspace directory for terminal commands. If you want a profile to start in a specific project, set `terminal.cwd` in that profile's `config.yaml`.
 
@@ -103,6 +103,9 @@ hermes profile create backup --clone-all
 
 # Clone config from a specific profile
 hermes profile create work2 --clone-from work
+
+# Clone from a specific profile without copying its installed skills
+hermes profile create worker --clone-from work --no-skills
 
 # Clone everything from a specific profile
 hermes profile create work2-backup --clone-from work --clone-all

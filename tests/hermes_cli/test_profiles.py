@@ -502,6 +502,24 @@ class TestNoSkillsOptOut:
         assert (profile_dir / "skills").is_dir()
         assert list((profile_dir / "skills").iterdir()) == []
 
+    @pytest.mark.parametrize("clone_options", [{"clone_config": True}, {"clone_from": "default"}])
+    def test_clone_can_skip_the_source_skills(self, profile_env, clone_options):
+        home = profile_env / ".hermes"
+        skill = home / "skills" / "report" / "SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text("# Sample report\n", encoding="utf-8")
+        (home / "SOUL.md").write_text("Sample profile.\n", encoding="utf-8")
+
+        regular = create_profile("regular", no_alias=True, **clone_options)
+        opted_out = create_profile("opted-out", no_alias=True, no_skills=True, **clone_options)
+
+        assert (regular / "skills" / "report" / "SKILL.md").read_text(encoding="utf-8") == "# Sample report\n"
+        assert not (regular / NO_BUNDLED_SKILLS_MARKER).exists()
+        assert list((opted_out / "skills").iterdir()) == []
+        assert (opted_out / NO_BUNDLED_SKILLS_MARKER).is_file()
+        assert (opted_out / "SOUL.md").read_text(encoding="utf-8") == "Sample profile.\n"
+        assert skill.read_text(encoding="utf-8") == "# Sample report\n"
+
 
 
 

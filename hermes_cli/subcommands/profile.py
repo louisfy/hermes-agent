@@ -52,7 +52,7 @@ def build_profile_parser(subparsers, *, cmd_profile: Callable) -> None:
              "The default profile's logins stay readable for any provider the new profile has not signed in to.")
     profile_create.add_argument(
         "--no-skills", action="store_true",
-        help="Create an empty profile with no bundled skills (opts out of `hermes update` skill sync)",
+        help="Opt out of full bundled skill seeding and skip copying skills with --clone or --clone-from",
     )
     profile_create.add_argument(
         "--description", default=None,

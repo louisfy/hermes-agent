@@ -112,7 +112,7 @@ class ProfileCreateReceipt:
     launch_label: str
     source_label: str
     skills_synced: Optional[int]  # bundled skills a fresh create copied; None: not seeded (clone, or it failed)
-    skills_opted_out: bool        # ``--no-skills``: only the essentials were seeded
+    skills_opted_out: bool        # ``--no-skills``: opted out of full bundled skill seeding
     alias_path: Optional[str]
     alias_collision: Optional[str]
     mirrored: dict[str, MirroredValue]  # a key a newer gateway adds is kept, never printed
@@ -150,10 +150,14 @@ class ProfileCreateReceipt:
             request.name) in {profiles.normalize_profile_name(p) for p in served}, None)
         seeded = result.skills_seeded or {}
         copied = seeded.get("copied")
+        opted_out = bool(seeded.get("skipped_opt_out"))
+        if request.no_skills and not request.fresh:
+            marker = path / profiles.NO_BUNDLED_SKILLS_MARKER
+            opted_out = _try("bundled skills opt-out", marker.is_file, False)
         return cls(
             path=str(path), display_path=display_hermes_home(path), launch_label=launch, source_label=source,
             skills_synced=len(copied) if isinstance(copied, list) else None,
-            skills_opted_out=bool(seeded.get("skipped_opt_out")),
+            skills_opted_out=opted_out,
             alias_path=str(result.alias_path) if result.alias_path else None,
             alias_collision=result.alias_collision, mirrored=dict(result.mirrored), warnings=list(result.warnings),
             cloned_plugins=list(plugins), memory_provider=memory, channels_left_behind=list(left_behind),

@@ -1309,11 +1309,11 @@ def cloned_plugin_names(profile_dir: Path) -> list[str]:
         return []
 
 
-def _bootstrap_profile_dir(profile_dir: Path, source_dir: Optional[Path],
-                           sync_imports: bool = False, seed_model: bool = True) -> None:
-    """Fresh layout: bootstrap dirs, then either seed a model block (no source) or clone
-    config files, installed skills (the dashboard's "clone from default" must keep bundled
-    AND user-installed skills), and memory/identity files from *source_dir*.
+def _bootstrap_profile_dir(
+    profile_dir: Path, source_dir: Optional[Path], *, sync_imports: bool = False,
+    seed_model: bool = True, no_skills: bool = False,
+) -> None:
+    """Bootstrap a profile, copying its source's installed skills unless ``no_skills`` is set.
 
     ``sync_imports`` also copies the source's ``import-sync.json`` (the manifest the agent-importers
     plugin's ``hermes import-agent`` writes) so the clone stays registered against the same external trees
@@ -1328,7 +1328,7 @@ def _bootstrap_profile_dir(profile_dir: Path, source_dir: Optional[Path],
         _clone_file(source_dir, profile_dir, relpath)
     _strip_multiplex_flag(profile_dir / "config.yaml")
     source_skills = source_dir / "skills"
-    if source_skills.is_dir():
+    if not no_skills and source_skills.is_dir():
         _copytree_keep_junctions(source_skills, profile_dir / "skills", _non_exportable_entries, dirs_exist_ok=True)
     for relpath in _CLONE_SUBDIR_FILES:
         _clone_file(source_dir, profile_dir, relpath)
@@ -1352,16 +1352,13 @@ def create_profile(
     sections, pairing/session state — unless ``clone_channels`` opts in: a copied bot credential
     makes two gateways fight over one bot (``hermes_cli.profile_channels``; callers list what
     was left behind with ``channel_platforms_configured(source_dir)``).
-    ``no_skills`` creates an empty profile and writes a marker so ``hermes update`` skips
-    re-seeding its skills; it is mutually exclusive with the clone options, which copy skills.
+    ``no_skills`` skips the installed skills copy on a config clone and opts the new
+    profile out of full bundled skill seeding. It cannot be combined with ``clone_all``.
     ``sync_imports`` (``--clone`` only; ``--clone-all`` copies the file anyway) also copies the
     ``import-agent`` sync manifest so the clone can keep pulling the same external agent trees.
     ``seed_model=False``: a fresh profile gets no launch model block (it may hold an inline api_key)."""
-    if no_skills and (clone_from is not None or clone_config or clone_all):
-        raise ValueError(
-            "--no-skills is mutually exclusive with --clone / --clone-from / --clone-all "
-            "(cloning explicitly copies skills from the source profile)."
-        )
+    if no_skills and clone_all:
+        raise ValueError("--no-skills cannot be combined with --clone-all; use --clone or --clone-from.")
     if sync_imports and not (clone_config or clone_all):
         raise ValueError("--sync-imports requires --clone or --clone-from (there is no import "
                          "manifest to carry over without a source profile).")
@@ -1406,7 +1403,8 @@ def create_profile(
         if clone_all and source_dir:
             clone_key = _clone_all_into(source_dir, staging, canon)
         else:
-            _bootstrap_profile_dir(staging, source_dir, sync_imports=sync_imports, seed_model=seed_model)
+            _bootstrap_profile_dir(staging, source_dir, sync_imports=sync_imports,
+                                   seed_model=seed_model, no_skills=no_skills)
         if source_dir is not None and not clone_channels:
             from hermes_cli.profile_channels import strip_channel_settings
             stripped = strip_channel_settings(staging, include_state=clone_all, source_dir=source_dir)
